@@ -1,0 +1,85 @@
+#Bibliotecas
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import pandas_datareader.data as web
+!pip install yfinance --upgrade --no-cache-dir
+
+import yfinance as yf
+yf.pdr_override()
+
+
+#ibov.head()
+#ibov['Close'].plot(figsize=(50,20), label = 'IBOV')
+#ibov['Close'].rolling(17).mean().plot(label = 'MM17')
+#ibov['Close'].rolling(32).mean().plot(label = 'MM32')
+#plt.legend()
+
+tendenciabaixa = []
+tendenciaalta = []
+somentealta = []
+somentabaixa = []
+
+#verficiar tendência
+import datetime as DT
+today = DT.date.today() - DT.timedelta(days=1)
+week_ago = today - DT.timedelta(days=7)
+#rint(week_ago)
+#print(today)
+#iniciando looping
+ListaAtivos = pd.read_excel('/content/Lista6.xlsx')
+x = 0
+T = ListaAtivos['Ativos'].count()
+while x < T:
+  ativo = ListaAtivos['Ativos'].iloc[-x]
+  
+
+#geting data
+  ibov = web.get_data_yahoo(ativo)
+  ibov['MM'] = ibov['Close'].rolling(17).mean()
+  ibov['ML'] = ibov['Close'].rolling(72).mean()
+  ibov['delta'] = ibov['MM'] - ibov['ML']
+#analisando a atendencia
+  ibov.loc[ibov['delta'] < 0, 'delta'] = -1 
+  ibov.loc[ibov['delta'] > 0, 'delta'] = 1
+  ibov.loc[ibov['delta'] == 0, 'delta'] = 0
+#fazendo o filtro de uma semana atras
+  ibovana = ibov[(ibov.index.date >= week_ago)]
+#Plotando o grafico do período de análise
+#ibovana['Close'].plot(label = 'Ativo')
+#ibovana['MM'].plot(label = 'MC', color = 'green')
+#ibovana['ML'].plot(label = 'ML', color = 'red')
+#plt.legend()
+#teste da base ibov analise
+  display(ibovana)
+#indicadores
+  baixa = ibovana.loc[ibovana['delta']==-1.0]['delta'].count()
+  Alta = ibovana.loc[ibovana['delta']==1.0]['delta'].count()
+#Indicadores de alta e baixa
+#print('Baixa é ',baixa,'Alta é ',Alta)
+
+  Linhas = ibovana['delta'].count()
+  if Alta != Linhas and baixa != Linhas:
+    print('possível alteração de tendência')
+    var = ibovana[(ibovana.index.date == today)]
+    indicador = var['delta'].sum()
+    if indicador < 0:
+      print(ativo)
+      print('reversão para baixa')
+      tendenciabaixa.append(ativo)
+
+    if indicador > 0:
+      print(ativo)
+      print('Reversão para alta')
+      tendenciaalta.append(ativo)
+
+  if Alta == Linhas:
+    print(ativo)
+    print('alta')
+    somentealta.append(ativo)
+
+  if baixa == Linhas:
+    print(ativo)
+    print('baixa')
+    somentabaixa.append(ativo)
+  x = x + 1
